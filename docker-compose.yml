@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    environment:
+      - CLICKHOUSE_USER=myuser
+      - CLICKHOUSE_PASSWORD=mypassword
+      - CLICKHOUSE_DB=default
+    ports:
+      - "8123:8123"   # HTTP-интерфейс
+      - "9000:9000"   # Native client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    restart: always
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=airflowfernetkey
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=Fz-bE4b66yECz66TOPfBFQLRlJHMOLJGQdRKYm8VIHw
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./dbt:/opt/airflow/dbt
+      - ./data:/opt/airflow/data
+    entrypoint: ["/bin/bash", "-c", "airflow db upgrade"]
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    depends_on:
+      - airflow-init
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=airflowfernetkey
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=Fz-bE4b66yECz66TOPfBFQLRlJHMOLJGQdRKYm8VIHw
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./dbt:/opt/airflow/dbt
+      - ./data:/opt/airflow/data
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: always
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    depends_on:
+      - airflow-init
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=airflowfernetkey
+      - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=Fz-bE4b66yECz66TOPfBFQLRlJHMOLJGQdRKYm8VIHw
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./dbt:/opt/airflow/dbt
+      - ./data:/opt/airflow/data
+    command: scheduler
+    restart: always
+
+volumes:
+  clickhouse_data:
+  postgres_data: 

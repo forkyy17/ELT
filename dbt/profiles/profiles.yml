@@ -1,0 +1,17 @@
+clickhouse_elt:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      schema: default
+      host: clickhouse
+      port: 8123
+      user: myuser
+      password: mypassword
+      secure: false
+      verify: false
+      database: default
+      threads: 4
+
+
+

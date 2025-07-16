@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: sales_source
+    database: default      # <--- добавь эту строку!
+    schema: default        # <--- и эту строку!
+    tables:
+      - name: sales
